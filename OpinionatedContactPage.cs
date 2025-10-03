@@ -1,14 +1,9 @@
-using Elements.Assets;
-using Elements.Core;
 using FrooxEngine;
-using Renderite.Shared;
+using System.Reflection.Emit;
+using SkyFrost.Base;
 
 using ResoniteModLoader;
 using HarmonyLib;
-
-#if DEBUG
-using ResoniteHotReloadLib;
-#endif
 
 namespace OpinionatedContactPage;
 
@@ -19,28 +14,12 @@ public class OpinionatedContactPage : ResoniteMod
 	public override string Version => "1.0.0";
 	public override string Link => "https://git.unix.dog/yosh/ResoniteOpinionatedContactPage/";
 
-	private static Harmony harmony = new Harmony("org.yosh.OpinionatedContactPage");
-
-	//// CONFIG ////
-
-	private static ModConfiguration? config;
-
-	[AutoRegisterConfigKey]
-	private static readonly ModConfigurationKey<int> ExampleKey = new(
-		"ExampleKey",
-		"Example configuration key",
-		computeDefault: () => 4,
-		valueValidator: (v) => 1 <= v && v <= 9
-	);
+	private static readonly Harmony harmony = new("org.yosh.OpinionatedContactPage");
 
 	//// INIT ////
 
 	public override void OnEngineInit()
 	{
-#if DEBUG
-		HotReloader.RegisterForHotReload(this);
-#endif
-		config = GetConfiguration();
 		InitMod();
 	}
 
@@ -49,29 +28,80 @@ public class OpinionatedContactPage : ResoniteMod
 		harmony.PatchAll();
 	}
 
-	//// RELOAD ////
-
-#if DEBUG
-	static void BeforeHotReload()
-	{
-		harmony.UnpatchAll(harmony.Id);
-	}
-
-	static void OnHotReload(ResoniteMod modInstance)
-	{
-		config = modInstance.GetConfiguration();
-		InitMod();
-	}
-#endif
-
 	//// PATCHES ////
 
-	[HarmonyPatch(typeof(FrooxEngineClass), nameof(FrooxEngineClass.Method))]
+	[HarmonyPatch(typeof(ContactsDialog), "OnCommonUpdate")]
 	public static class Patch_Method
 	{
-		static bool Prefix()
+		private static int CompareContacts(ContactItem ci1, ContactItem ci2)
 		{
-			return true;
+			var cd1 = ci1.Data;
+			var cd2 = ci2.Data;
+
+			// check 0: has messages
+			int msgc = ci2.HasMessages.CompareTo(ci1.HasMessages);
+			if (msgc != 0) {
+				return msgc;
+			}
+
+			// check 1: offline or online
+			int cd1stat = (int?)cd1.CurrentStatus.OnlineStatus ?? 1;
+			int cd2stat = (int?)cd2.CurrentStatus.OnlineStatus ?? 1;
+			switch (cd1stat, cd2stat) {
+				case (0, >0): return 1;
+				case (>0, 0): return -1;
+				case (0, 0):
+					return cd1.Contact.ContactStatus.CompareTo(cd2.Contact.ContactStatus) switch {
+						0 => ci1.Contact.ContactUsername.CompareTo(ci2.Contact.ContactUsername),
+						int s => s
+					};
+			}
+
+			// check 2: headless
+			int hlc = cd1.CurrentStatus.SessionType.CompareTo(cd2.CurrentStatus.SessionType);
+			if (hlc != 0) {
+				return hlc;
+			}
+
+			// check 3: joinable
+			SessionInfo cd1s = cd1.CurrentSessionInfo;
+			SessionInfo cd2s = cd2.CurrentSessionInfo;
+			switch (cd1s, cd2s, cd1stat == cd2stat) {
+				case (SessionInfo, null, _):  return -1;
+				case (null, SessionInfo, _):  return 1;
+				case (null, null, false):     return cd2stat.CompareTo(cd1stat);
+			};
+
+			return ci1.Contact.ContactUsername.CompareTo(ci2.Contact.ContactUsername);
+		}
+
+		public static int Compare(Slot a, Slot b)
+		{
+			ContactItem component = a.GetComponent<ContactItem>();
+			ContactItem component2 = b.GetComponent<ContactItem>();
+			Contact? contact = component?.Contact;
+			Contact? contact2 = component2?.Contact;
+			return (contact, contact2) switch {
+				(null, null) => 0,
+				(Contact, null) => -1,
+				(null, Contact) => 1,
+				(Contact, Contact) => CompareContacts(component!, component2!),
+			};
+		}
+
+		static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+		{
+			var insts = instructions.ToList();
+			var rtm = typeof(Patch_Method).GetMethod("Compare");
+
+			// modify the last ldftn instruction, which is loading the anonymous sorting function
+			for (int i = insts.Count - 1; i >= 0; i--) {
+				if (insts[i].opcode == OpCodes.Ldftn) {
+					insts[i].operand = rtm;
+					break;
+				}
+			}
+			return insts;
 		}
 	}
 }
