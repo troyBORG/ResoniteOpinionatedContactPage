@@ -81,12 +81,21 @@ public class OpinionatedContactPage : ResoniteMod
 			ContactItem component2 = b.GetComponent<ContactItem>();
 			Contact? contact = component?.Contact;
 			Contact? contact2 = component2?.Contact;
-			return (contact, contact2) switch {
-				(null, null) => 0,
-				(Contact, null) => -1,
-				(null, Contact) => 1,
-				(Contact, Contact) => CompareContacts(component!, component2!),
-			};
+			ContactData? cd1 = component?.Data;
+			ContactData? cd2 = component2?.Data;
+
+			switch (contact, contact2) {
+				case (null, null): return 0;
+				case (Contact, null): return -1;
+				case (null, Contact): return 1;
+			}
+			switch (cd1, cd2) {
+				case (null, null): return 0;
+				case (ContactData, null): return -1;
+				case (null, ContactData): return 1;
+			}
+
+			return CompareContacts(component!, component2!);
 		}
 
 		static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)

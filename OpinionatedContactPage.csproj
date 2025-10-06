@@ -38,6 +38,9 @@
 			<HintPath>$(ManagedPath)/SkyFrost.Base.Models.dll</HintPath>
 		</Reference>
 
+		<Reference Include="ResoniteModLoader">
+			<HintPath>$(ResonitePath)/Libraries/ResoniteModLoader.dll</HintPath>
+		</Reference>
 		<Reference Include="HarmonyLib">
 			<HintPath>$(ResonitePath)/rml_libs/0Harmony.dll</HintPath>
 		</Reference>
