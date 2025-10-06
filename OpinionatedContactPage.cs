@@ -33,10 +33,25 @@ public class OpinionatedContactPage : ResoniteMod
 	[HarmonyPatch(typeof(ContactsDialog), "OnCommonUpdate")]
 	public static class Patch_Method
 	{
-		private static int CompareContacts(ContactItem ci1, ContactItem ci2)
+		public static int Compare(Slot a, Slot b)
 		{
-			var cd1 = ci1.Data;
-			var cd2 = ci2.Data;
+			ContactItem ci1 = a.GetComponent<ContactItem>();
+			ContactItem ci2 = b.GetComponent<ContactItem>();
+			Contact? c1 = ci1.Contact;
+			Contact? c2 = ci2.Contact;
+			ContactData? cd1 = ci1.Data;
+			ContactData? cd2 = ci2.Data;
+
+			switch (c1, c2) {
+				case (null, null): return 0;
+				case (Contact, null): return -1;
+				case (null, Contact): return 1;
+			}
+			switch (cd1, cd2) {
+				case (null, null): return ci1.Contact.ContactUsername.CompareTo(ci2.Contact.ContactUsername);
+				case (ContactData, null): return -1;
+				case (null, ContactData): return 1;
+			}
 
 			// check 0: has messages
 			int msgc = ci2.HasMessages.CompareTo(ci1.HasMessages);
@@ -73,29 +88,6 @@ public class OpinionatedContactPage : ResoniteMod
 			};
 
 			return ci1.Contact.ContactUsername.CompareTo(ci2.Contact.ContactUsername);
-		}
-
-		public static int Compare(Slot a, Slot b)
-		{
-			ContactItem component = a.GetComponent<ContactItem>();
-			ContactItem component2 = b.GetComponent<ContactItem>();
-			Contact? contact = component?.Contact;
-			Contact? contact2 = component2?.Contact;
-			ContactData? cd1 = component?.Data;
-			ContactData? cd2 = component2?.Data;
-
-			switch (contact, contact2) {
-				case (null, null): return 0;
-				case (Contact, null): return -1;
-				case (null, Contact): return 1;
-			}
-			switch (cd1, cd2) {
-				case (null, null): return 0;
-				case (ContactData, null): return -1;
-				case (null, ContactData): return 1;
-			}
-
-			return CompareContacts(component!, component2!);
 		}
 
 		static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
