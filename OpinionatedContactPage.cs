@@ -11,7 +11,7 @@ public class OpinionatedContactPage : ResoniteMod
 {
 	public override string Name => "OpinionatedContactPage";
 	public override string Author => "yosh";
-	public override string Version => "1.0.0";
+	public override string Version => typeof(OpinionatedContactPage).Assembly.GetName().Version?.ToString() ?? "0.0.0";
 	public override string Link => "https://git.unix.dog/yosh/ResoniteOpinionatedContactPage/";
 
 	private static readonly Harmony harmony = new("org.yosh.OpinionatedContactPage");

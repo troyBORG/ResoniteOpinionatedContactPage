@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>1.0.0</Version>
+		<Version>1.0.2</Version>
 		<Authors>yosh</Authors>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
@@ -25,24 +25,25 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Reference Include="FrooxEngine">
-			<HintPath>$(ManagedPath)/FrooxEngine.dll</HintPath>
-		</Reference>
-		<Reference Include="Elements.Core">
-			<HintPath>$(ManagedPath)/Elements.Core.dll</HintPath>
-		</Reference>
-		<Reference Include="SkyFrost.Base">
-			<HintPath>$(ManagedPath)/SkyFrost.Base.dll</HintPath>
-		</Reference>
-		<Reference Include="SkyFrost.Base.Models">
-			<HintPath>$(ManagedPath)/SkyFrost.Base.Models.dll</HintPath>
-		</Reference>
+		<ResoniteReference Include="FrooxEngine"/>
+		<ResoniteReference Include="Elements.Core"/>
+		<ResoniteReference Include="SkyFrost.Base"/>
+		<ResoniteReference Include="SkyFrost.Base.Models"/>
 
 		<Reference Include="ResoniteModLoader">
 			<HintPath>$(ResonitePath)/Libraries/ResoniteModLoader.dll</HintPath>
 		</Reference>
 		<Reference Include="HarmonyLib">
 			<HintPath>$(ResonitePath)/rml_libs/0Harmony.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="@(ResoniteReference)">
+			<Name>%(ResoniteReference.Identity)</Name>
+			<HintPath Condition="'%(HintPath)' == '' And Exists('$(ManagedPath)/%(Identity).dll')">$(ManagedPath)/%(Identity).dll</HintPath>
+			<HintPath Condition="'%(HintPath)' == '' And Exists('$(ManagedPath)/%(Identity).exe')">$(ManagedPath)/%(Identity).exe</HintPath>
+			<Private>false</Private>
 		</Reference>
 	</ItemGroup>
 
