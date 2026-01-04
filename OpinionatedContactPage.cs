@@ -22,11 +22,40 @@ public class OpinionatedContactPage : ResoniteMod
 
 	private static readonly Harmony harmony = new("org.yosh.OpinionatedContactPage");
 	internal static PinnedContactsStorage? pinnedStorage;
+	private static ModConfiguration? Config;
+
+	//// CONFIG KEYS ////
+
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<bool> PrioritizeOwnAccount = new ModConfigurationKey<bool>(
+		"PrioritizeOwnAccount",
+		"Prioritize your own account at the top of the contacts list (after unread messages)",
+		() => true
+	);
+
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<bool> PrioritizeResoniteBot = new ModConfigurationKey<bool>(
+		"PrioritizeResoniteBot",
+		"Prioritize the Resonite bot at the top of the contacts list (after own account)",
+		() => true
+	);
+
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<string> SortingStyle = new ModConfigurationKey<string>(
+		"SortingStyle",
+		"Sorting style: 'Default' (vanilla Resonite sorting, mod does nothing), 'Optimized' (custom optimized sorting with pins, joinable priority, etc.)",
+		() => "Optimized"
+	);
 
 	//// INIT ////
 
 	public override void OnEngineInit()
 	{
+		Config = GetConfiguration();
+		if (Config != null)
+		{
+			Config.Save(true);
+		}
 		pinnedStorage = new PinnedContactsStorage();
 		InitMod();
 	}
@@ -130,6 +159,9 @@ public class OpinionatedContactPage : ResoniteMod
 	{
 		// Cache MethodInfo to avoid repeated reflection calls in transpiler
 		private static readonly MethodInfo CompareMethod = typeof(Patch_Method).GetMethod(nameof(Compare))!;
+		
+		// TODO: Add activity tracking for last message time and last seen online
+		// This will require refactoring to Prefix/Postfix approach
 
 		public static int Compare(Slot a, Slot b)
 		{
@@ -164,9 +196,36 @@ public class OpinionatedContactPage : ResoniteMod
 				return msgc;
 			}
 
+			// check 0.25: special contacts (user's own account, self contact, Resonite bot)
+			// These come before pinned contacts (configurable)
+			bool prioritizeOwn = OpinionatedContactPage.Config?.GetValue(OpinionatedContactPage.PrioritizeOwnAccount) ?? true;
+			bool prioritizeResonite = OpinionatedContactPage.Config?.GetValue(OpinionatedContactPage.PrioritizeResoniteBot) ?? true;
+			
+			if (prioritizeOwn)
+			{
+				bool c1IsSelf = c1!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c1.IsSelfContact;
+				bool c2IsSelf = c2!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c2.IsSelfContact;
+				
+				// User's own account is highest priority
+				if (c1IsSelf && !c2IsSelf) return -1;
+				if (!c1IsSelf && c2IsSelf) return 1;
+			}
+			
+			if (prioritizeResonite)
+			{
+				bool c1IsResonite = c1!.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
+				bool c2IsResonite = c2!.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
+				bool c1IsSelf = c1.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c1.IsSelfContact;
+				bool c2IsSelf = c2.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c2.IsSelfContact;
+				
+				// Resonite bot is second (after self, before pinned)
+				if (c1IsResonite && !c2IsResonite && !c2IsSelf) return -1;
+				if (!c1IsResonite && c2IsResonite && !c1IsSelf) return 1;
+			}
+
 			// check 0.5: pinned contacts (using ContactUserId as identifier, like FlexibleContactsSort)
-			bool c1Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c1!.ContactUserId) ?? false;
-			bool c2Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c2!.ContactUserId) ?? false;
+			bool c1Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c1.ContactUserId) ?? false;
+			bool c2Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c2.ContactUserId) ?? false;
 			int pinC = c2Pinned.CompareTo(c1Pinned);
 			if (pinC != 0) {
 				return pinC;
@@ -216,6 +275,10 @@ public class OpinionatedContactPage : ResoniteMod
 			}
 			return insts;
 		}
+		
+		// TODO: Add tracking for last message time and last seen online
+		// This requires refactoring from Transpiler to Prefix/Postfix approach
+		// to properly support "Default" mode (vanilla sorting) and add activity tracking
 	}
 
 	[HarmonyPatch(typeof(ContactsDialog), "UpdateSelectedContactUI")]

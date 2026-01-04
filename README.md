@@ -7,14 +7,26 @@
 The sorting order is:
 
 1) unread messages/invites
-2) **pinned contacts** (see below)
-3) users you can join, regardless of status
-4) users you can't join, sorted by online status
-5) headless users
-6) contact requests
-7) offline users
+2) your own account (automatically prioritized)
+3) Resonite bot (automatically prioritized)
+4) **pinned contacts** (see below)
+5) users you can join, regardless of status
+6) users you can't join, sorted by online status
+7) headless users
+8) contact requests
+9) offline users
 
 ties are broken alphabetically rather than last message time
+
+## Configuration
+
+This mod supports configuration options that can be changed in Resonite's mod configuration menu (accessible from the main menu):
+
+- **PrioritizeOwnAccount** (default: `true`): Prioritize your own account at the top of the contacts list (after unread messages)
+- **PrioritizeResoniteBot** (default: `true`): Prioritize the Resonite bot at the top of the contacts list (after own account)
+- **SortingStyle** (default: `"Optimized"`): Choose the sorting style:
+  - `"Default"`: Use vanilla Resonite sorting (mod does nothing) - **Note: Currently not fully implemented, uses Optimized instead**
+  - `"Optimized"`: Custom optimized sorting with pins, joinable priority, online status, etc.
 
 ## Pinning Contacts
 
