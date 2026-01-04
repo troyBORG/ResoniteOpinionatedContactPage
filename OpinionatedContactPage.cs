@@ -1,4 +1,5 @@
 using FrooxEngine;
+using FrooxEngine.UIX;
 using System.Reflection;
 using System.Reflection.Emit;
 using SkyFrost.Base;
@@ -163,9 +164,9 @@ public class OpinionatedContactPage : ResoniteMod
 				return msgc;
 			}
 
-			// check 0.5: pinned contacts (using ContactUsername as identifier)
-			bool c1Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c1!.ContactUsername) ?? false;
-			bool c2Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c2!.ContactUsername) ?? false;
+			// check 0.5: pinned contacts (using ContactUserId as identifier, like FlexibleContactsSort)
+			bool c1Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c1!.ContactUserId) ?? false;
+			bool c2Pinned = OpinionatedContactPage.pinnedStorage?.IsPinned(c2!.ContactUserId) ?? false;
 			int pinC = c2Pinned.CompareTo(c1Pinned);
 			if (pinC != 0) {
 				return pinC;
@@ -217,8 +218,28 @@ public class OpinionatedContactPage : ResoniteMod
 		}
 	}
 
-	// TODO: Add UI for pinning contacts
-	// For now, users can manually edit the pinned_contacts.json file in:
-	// %LocalAppData%\Resonite\ModConfigs\OpinionatedContactPage\pinned_contacts.json
-	// The file contains an array of ContactUsernames to pin.
+	[HarmonyPatch(typeof(ContactsDialog), "UpdateSelectedContactUI")]
+	public static class ContactsDialog_UpdateSelectedContactUI_Patch
+	{
+		static void Postfix(ContactsDialog __instance, UIBuilder ___actionsUi)
+		{
+			if (__instance.SelectedContact is null || 
+			    __instance.SelectedContactId == __instance.Cloud.Platform.AppUserId || 
+			    __instance.SelectedContact.IsSelfContact)
+				return;
+
+			if (OpinionatedContactPage.pinnedStorage == null)
+				return;
+
+			bool isPinned = OpinionatedContactPage.pinnedStorage.IsPinned(__instance.SelectedContactId);
+			var pinButton = ___actionsUi.Button(isPinned ? "Unpin" : "Pin");
+			
+			pinButton.LocalPressed += (button, data) =>
+			{
+				OpinionatedContactPage.pinnedStorage.TogglePin(__instance.SelectedContactId);
+				bool nowPinned = OpinionatedContactPage.pinnedStorage.IsPinned(__instance.SelectedContactId);
+				((Text)pinButton.LabelTextField.Parent).Content.Value = nowPinned ? "Unpin" : "Pin";
+			};
+		}
+	}
 }

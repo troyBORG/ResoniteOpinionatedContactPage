@@ -24,13 +24,15 @@ To pin/unpin contacts, edit the configuration file:
 - **Windows**: `%LocalAppData%\Resonite\ModConfigs\OpinionatedContactPage\pinned_contacts.json`
 - **Linux/Mac**: `~/.local/share/Resonite/ModConfigs/OpinionatedContactPage/pinned_contacts.json`
 
-The file contains a JSON array of ContactUsernames. Example:
+The file contains a JSON array of ContactUserIds (not usernames). Example:
 ```json
 [
-  "UserOne",
-  "UserTwo",
-  "UserThree"
+  "U-user-id-1",
+  "U-user-id-2",
+  "U-user-id-3"
 ]
 ```
 
-**Note**: UI for pinning contacts (like FlexibleContactsSort) is planned but not yet implemented. For now, manual JSON editing is required.
+**Note**: ContactUserIds are unique identifiers (e.g., "U-xxxxx-xxxxx"), not usernames. You can find a contact's UserId by inspecting the contact details in Resonite.
+
+**UI**: When you select a contact in the contacts list, a "Pin" or "Unpin" button will appear in the actions menu. Click it to toggle the pin state. You can also manually edit the JSON file if needed.
