@@ -4,52 +4,61 @@
 		<Version>1.0.2</Version>
 		<Authors>yosh</Authors>
 		<OutputType>Library</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AppDesignerFolder>Properties</AppDesignerFolder>
+		<RootNamespace>OpinionatedContactPage</RootNamespace>
+		<AssemblyTitle>OpinionatedContactPage</AssemblyTitle>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<LangVersion>latest</LangVersion>
+		<Deterministic>true</Deterministic>
+		<CopyLocal>false</CopyLocal>
+		<DebugSymbols Condition="'$(Configuration)'=='Release'">false</DebugSymbols>
+		<DebugType Condition="'$(Configuration)'=='Release'">None</DebugType>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(ResonitePath)' == ''">
-		<!-- default windows and linux paths, manual fallback if both don't turn up anything -->
-		<ResonitePath Condition="'$(OS)' == 'Windows_NT' and Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite')">C:/Program Files (x86)/Steam/steamapps/common/Resonite</ResonitePath>
-
-		<ResonitePath Condition="'$(OS)' != 'Windows_NT' and Exists('$(HOME)/.steam/steam/steamapps/common/Resonite')">$(HOME)/.steam/steam/steamapps/common/Resonite</ResonitePath>
-
-		<ResonitePath Condition="'$(ResonitePath)' == ''">G:\SteamLibrary\steamapps\common\Resonite</ResonitePath>
-	</PropertyGroup>
-
-	<!-- path containing managed dlls. for post-split, this is the same as resonite path, but still here just in case -->
-	<PropertyGroup>
-		<ManagedPath>$(ResonitePath)</ManagedPath>
+		<ResonitePath Condition="Exists('G:\SteamLibrary\steamapps\common\Resonite\')">G:\SteamLibrary\steamapps\common\Resonite\</ResonitePath>
+		<ResonitePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
+		<ResonitePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Resonite/')">$(HOME)/.steam/steam/steamapps/common/Resonite/</ResonitePath>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ResoniteReference Include="FrooxEngine"/>
-		<ResoniteReference Include="Elements.Core"/>
-		<ResoniteReference Include="SkyFrost.Base"/>
-		<ResoniteReference Include="SkyFrost.Base.Models"/>
-
 		<Reference Include="ResoniteModLoader">
-			<HintPath>$(ResonitePath)/Libraries/ResoniteModLoader.dll</HintPath>
+			<HintPath>$(ResonitePath)Libraries\ResoniteModLoader.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 		<Reference Include="HarmonyLib">
-			<HintPath>$(ResonitePath)/rml_libs/0Harmony.dll</HintPath>
+			<HintPath>$(ResonitePath)rml_libs\0Harmony.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
-	</ItemGroup>
-
-	<ItemGroup>
-		<Reference Include="@(ResoniteReference)">
-			<Name>%(ResoniteReference.Identity)</Name>
-			<HintPath Condition="'%(HintPath)' == '' And Exists('$(ManagedPath)/%(Identity).dll')">$(ManagedPath)/%(Identity).dll</HintPath>
-			<HintPath Condition="'%(HintPath)' == '' And Exists('$(ManagedPath)/%(Identity).exe')">$(ManagedPath)/%(Identity).exe</HintPath>
+		<Reference Include="FrooxEngine">
+			<HintPath>$(ResonitePath)FrooxEngine.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Elements.Core">
+			<HintPath>$(ResonitePath)Elements.Core.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="SkyFrost.Base">
+			<HintPath>$(ResonitePath)SkyFrost.Base.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="SkyFrost.Base.Models">
+			<HintPath>$(ResonitePath)SkyFrost.Base.Models.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>
 
-	<Target Name="Copy" DependsOnTargets="Build">
-		<Message Text="Copying $(TargetFileName) to $(ResonitePath)/rml_mods" Importance="High" />
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ResonitePath)/rml_mods" />
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<PropertyGroup>
+			<ModsPath>$(ResonitePath)rml_mods\</ModsPath>
+		</PropertyGroup>
+		<Message Text="Copying $(TargetFileName) to $(ModsPath)" Importance="high" />
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)" Condition="Exists('$(ModsPath)')" />
+		<Warning Text="rml_mods folder not found at $(ModsPath). DLL not copied automatically." Condition="!Exists('$(ModsPath)')" />
 	</Target>
 
 </Project>
