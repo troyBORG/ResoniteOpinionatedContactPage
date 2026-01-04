@@ -201,26 +201,32 @@ public class OpinionatedContactPage : ResoniteMod
 			bool prioritizeOwn = OpinionatedContactPage.Config?.GetValue(OpinionatedContactPage.PrioritizeOwnAccount) ?? true;
 			bool prioritizeResonite = OpinionatedContactPage.Config?.GetValue(OpinionatedContactPage.PrioritizeResoniteBot) ?? true;
 			
+			bool c1IsSelf = c1!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c1.IsSelfContact;
+			bool c2IsSelf = c2!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c2.IsSelfContact;
+			bool c1IsResonite = c1.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
+			bool c2IsResonite = c2.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
+			
+			// User's own account is highest priority (only if enabled)
 			if (prioritizeOwn)
 			{
-				bool c1IsSelf = c1!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c1.IsSelfContact;
-				bool c2IsSelf = c2!.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c2.IsSelfContact;
-				
-				// User's own account is highest priority
 				if (c1IsSelf && !c2IsSelf) return -1;
 				if (!c1IsSelf && c2IsSelf) return 1;
 			}
 			
+			// Resonite bot is second (after self, before pinned) (only if enabled)
 			if (prioritizeResonite)
 			{
-				bool c1IsResonite = c1!.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
-				bool c2IsResonite = c2!.ContactUsername.Equals("Resonite", StringComparison.OrdinalIgnoreCase);
-				bool c1IsSelf = c1.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c1.IsSelfContact;
-				bool c2IsSelf = c2.ContactUserId == Engine.Current.Cloud.Platform.AppUserId || c2.IsSelfContact;
-				
-				// Resonite bot is second (after self, before pinned)
-				if (c1IsResonite && !c2IsResonite && !c2IsSelf) return -1;
-				if (!c1IsResonite && c2IsResonite && !c1IsSelf) return 1;
+				// Only prioritize Resonite bot if it's not a self account, or if self prioritization is disabled
+				if (c1IsResonite && !c2IsResonite)
+				{
+					// Don't prioritize Resonite bot over self account if self prioritization is enabled
+					if (!prioritizeOwn || !c2IsSelf) return -1;
+				}
+				if (!c1IsResonite && c2IsResonite)
+				{
+					// Don't prioritize Resonite bot over self account if self prioritization is enabled
+					if (!prioritizeOwn || !c1IsSelf) return 1;
+				}
 			}
 
 			// check 0.5: pinned contacts (using ContactUserId as identifier, like FlexibleContactsSort)
